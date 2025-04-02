@@ -1,0 +1,43 @@
+# 构建阶段
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# 复制依赖文件
+COPY StockDownloader/requirements.txt StockDownloader/requirements.txt
+COPY daily_update/requirements.txt daily_update/requirements.txt
+
+# 合并依赖并安装
+RUN cat StockDownloader/requirements.txt > requirements.txt && \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt --target=/python_deps
+
+# 运行阶段
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 复制依赖
+COPY --from=builder /python_deps /usr/local/lib/python3.11/site-packages/
+
+# 复制项目文件
+COPY StockDownloader /app/StockDownloader
+COPY daily_update /app/daily_update
+
+# 创建必要的目录
+RUN mkdir -p /app/StockDownloader/cache /app/logs
+
+# 设置时区为上海
+RUN apt-get update && apt-get install -y tzdata \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置环境变量
+ENV PYTHONPATH=/app
+ENV CACHE_PATH=/app/StockDownloader/cache
+ENV LOG_DIR=/app/logs
+
+# 启动命令
+CMD ["python", "daily_update/daily_update.py"]
