@@ -27,8 +27,8 @@ COPY daily_update /app/daily_update
 # 创建必要的目录
 RUN mkdir -p /app/StockDownloader/cache /app/logs
 
-# 设置时区为上海
-RUN apt-get update && apt-get install -y tzdata \
+# 设置时区为上海并安装cron
+RUN apt-get update && apt-get install -y tzdata cron \
     && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
     && apt-get clean \
@@ -39,5 +39,20 @@ ENV PYTHONPATH=/app
 ENV CACHE_PATH=/app/StockDownloader/cache
 ENV LOG_DIR=/app/logs
 
+# 添加crontab文件
+COPY daily_update/crontab /etc/cron.d/daily_update_cron
+RUN chmod 0644 /etc/cron.d/daily_update_cron && \
+    crontab /etc/cron.d/daily_update_cron
+
+# 创建启动脚本
+RUN echo '#!/bin/sh\n\
+# 确保日志目录权限正确\n\
+chmod -R 777 /app/logs\n\
+# 执行一次初始数据更新（如果是交易日）\n\
+python daily_update/daily_update.py\n\
+# 启动cron服务并保持容器运行\n\
+exec cron -f' > /app/start.sh && \
+    chmod +x /app/start.sh
+
 # 启动命令
-CMD ["python", "daily_update/daily_update.py"]
+CMD ["/app/start.sh"]
