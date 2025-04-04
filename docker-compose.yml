@@ -1,21 +1,12 @@
 version: '3.8'
 
 services:
-  stockdownloader:
-    build:
-      context: .
-      dockerfile: StockDownloader/Dockerfile.stockdownloader
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - stock_network
-
   daily_update:
     build:
       context: .
       dockerfile: daily_update/Dockerfile.daily_update
+    ports:
+      - "8000:8000"
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
