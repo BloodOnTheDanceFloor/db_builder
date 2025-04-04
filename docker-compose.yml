@@ -5,10 +5,10 @@ services:
     build:
       context: .
       dockerfile: daily_update/Dockerfile.daily_update
-    ports:
-      - "8000:8000"
     volumes:
       - ./logs:/app/logs
+      - ./StockDownloader:/app/StockDownloader
+      - ./daily_update:/app/daily_update
     restart: unless-stopped
     networks:
       - stock_network

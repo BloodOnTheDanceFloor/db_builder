@@ -20,10 +20,6 @@ WORKDIR /app
 # 复制依赖
 COPY --from=builder /python_deps /usr/local/lib/python3.11/site-packages/
 
-# 复制项目文件
-COPY StockDownloader /app/StockDownloader
-COPY daily_update /app/daily_update
-
 # 创建必要的目录
 RUN mkdir -p /app/StockDownloader/cache /app/logs
 
