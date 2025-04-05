@@ -151,17 +151,25 @@ def main():
     """
     主函数，执行每日数据更新任务
     """
-    # 执行一次更新任务
     logger.info("服务启动，执行数据更新...")
     
     # 检查是否为交易日
     is_trade_day = is_trading_day()
     if not is_trade_day:
-        logger.info("今天不是交易日，直接检查数据是否需要更新")
+        logger.info("今天不是交易日，但仍将检查数据是否需要更新")
     
     # 执行更新任务
     update_data()
     logger.info("数据更新任务执行完成，服务退出")
+    
+    # 如果在容器环境中运行，保持脚本运行
+    if os.environ.get('CONTAINER_ENV') == 'true':
+        logger.info("在容器环境中运行，保持服务运行状态")
+        while True:
+            # 每24小时执行一次更新
+            time.sleep(86400)  # 24小时 = 86400秒
+            logger.info("执行定时数据更新...")
+            update_data()
 
 if __name__ == "__main__":
     main()
