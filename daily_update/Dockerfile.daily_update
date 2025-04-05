@@ -44,7 +44,7 @@ RUN chmod 0644 /etc/cron.d/daily_update_cron && \
 RUN echo '#!/bin/sh\n\
 # 确保日志目录权限正确\n\
 chmod -R 777 /app/logs\n\
-# 执行一次初始数据更新（如果是交易日）\n\
+# 执行一次初始数据更新（无论是否为交易日）\n\
 python daily_update/daily_update.py\n\
 # 启动cron服务并保持容器运行\n\
 exec cron -f' > /app/start.sh && \

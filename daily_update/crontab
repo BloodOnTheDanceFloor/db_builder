@@ -1,2 +1,2 @@
 # 每天凌晨1点执行daily_update.py脚本
-0 1 * * * cd /app && python daily_update/daily_update.py >> /app/logs/cron_daily_update_$(date +\%Y\%m\%d).log 2>&1
+0 21 * * * cd /app && python daily_update/daily_update.py >> /app/logs/cron_daily_update_$(date +\%Y\%m\%d).log 2>&1

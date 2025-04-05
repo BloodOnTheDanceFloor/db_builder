@@ -104,18 +104,18 @@ def update_index_data():
 
 def is_update_time_window():
     """
-    检查是否在更新时间窗口内（23:00-03:00）
+    检查是否在更新时间窗口内（20:00-23:00）
     """
     current_hour = datetime.now().hour
-    return current_hour >= 23 or current_hour <= 3
+    return 20 <= current_hour <= 23
 
 def wait_until_next_check():
     """
-    等待到第二天23:00
+    等待到当天20:00或第二天20:00
     """
     now = datetime.now()
-    # 计算到第二天23:00的时间
-    next_check = now.replace(hour=23, minute=0, second=0, microsecond=0)
+    # 计算到当天20:00的时间
+    next_check = now.replace(hour=20, minute=0, second=0, microsecond=0)
     if now >= next_check:
         next_check += timedelta(days=1)
     
@@ -155,9 +155,9 @@ def main():
     logger.info("服务启动，执行数据更新...")
     
     # 检查是否为交易日
-    if not is_trading_day():
-        logger.info("今天不是交易日，无需更新数据")
-        return
+    is_trade_day = is_trading_day()
+    if not is_trade_day:
+        logger.info("今天不是交易日，直接检查数据是否需要更新")
     
     # 执行更新任务
     update_data()
