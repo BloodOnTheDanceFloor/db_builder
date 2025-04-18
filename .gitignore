@@ -7,7 +7,8 @@ logs/*
 update_daily_data/
 # C extensions
 *.so
-
+# venv
+myvenv
 # Distribution / packaging
 .Python
 build/
