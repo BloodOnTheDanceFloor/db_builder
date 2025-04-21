@@ -2,6 +2,8 @@
 from sqlalchemy import inspect
 from ..database.session import engine, Base
 from ..core.logger import logger
+# 确保所有模型类都被导入，这样Base.metadata才能包含所有表
+from ..database.models import DerivedStock, DerivedIndex, StockDailyData, IndexDailyData, StockInfo, IndexInfo, AuctionStock, AuctionIndex
 
 
 def init_database():
