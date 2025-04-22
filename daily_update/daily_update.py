@@ -88,14 +88,14 @@ def is_trading_day():
         logger.error(f"检查交易日时发生错误: {str(e)}")
         raise
 
-@retry_with_delay(max_retries=3, initial_delay=300)  # 5分钟初始延迟
+@retry_with_delay(max_retries=3, initial_delay=66)  # 5分钟初始延迟
 def update_stock_data():
     """
     更新股票数据，带重试机制
     """
     download_all_stock_data(update_only=True)
 
-@retry_with_delay(max_retries=3, initial_delay=300)  # 5分钟初始延迟
+@retry_with_delay(max_retries=3, initial_delay=66)  # 5分钟初始延迟
 def update_index_data():
     """
     更新指数数据，带重试机制
@@ -133,7 +133,7 @@ def update_data():
         update_stock_data()
         
         # 随机等待5-10分钟
-        wait_time = random.randint(300, 600)
+        wait_time = random.randint(66, 88)
         logger.info(f"等待{wait_time}秒后开始更新指数日线数据...")
         time.sleep(wait_time)
         
