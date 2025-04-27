@@ -138,7 +138,9 @@ def update_stock_index_correlation(stock_symbol: str = None, years: List[int] = 
         
         # 检查是否是单独运行（通过__main__调用）
         is_main_run = __name__ == "__main__"
-        
+
+        print("开始更新股票指数相关度...")  # 添加开始信息
+
         for stock in stocks:
             print(f"处理股票: {stock.symbol} ({stock.name})")
             for year in years:
@@ -147,50 +149,52 @@ def update_stock_index_correlation(stock_symbol: str = None, years: List[int] = 
                 if year > current_year:
                     print(f"跳过未来年份: {year}")
                     continue
-                
+
                 # 计算相关度最高的指数
                 best_index, index_scores, index_valid_days = calculate_correlation_for_stock(stock.symbol, year, db)
-                
+
                 if best_index:
                     # 更新stock_info表
                     setattr(stock, f"index_{year}", best_index)
                     print(f"  {year}年最相关指数: {best_index}")
-                    
+
                     # 如果是单独运行，打印所有指数的得分情况
                     if is_main_run:
                         print(f"\n  {year}年所有指数得分情况:")
                         print("  " + "-"*60)
                         print("  {:^10} {:^10} {:^15} {:^10} {:^5}".format("指数代码", "得分", "有效交易日数", "平均得分", ""))
                         print("  " + "-"*60)
-                        
+
                         # 按平均得分排序（从低到高，低分表示相关性更高）
                         sorted_indices = []
                         for symbol, score in index_scores.items():
                             if index_valid_days[symbol] > 0:
                                 avg_score = score / index_valid_days[symbol]
                                 sorted_indices.append((symbol, score, index_valid_days[symbol], avg_score))
-                        
+
                         # 按平均得分排序
                         sorted_indices.sort(key=lambda x: x[3])
-                        
+
                         for i, (symbol, score, valid_days, avg_score) in enumerate(sorted_indices):
                             # 标记最相关的指数
                             mark = "*" if symbol == best_index else " "
                             # 添加排名
                             rank = i + 1
                             print("  {:10} {:10d} {:15d} {:10.2f} {}".format(symbol, score, valid_days, avg_score, mark))
-                        
+
                         print("  " + "-"*60)
                         print(f"  * 表示相关度最高的指数\n")
                 else:
                     print(f"  未找到{year}年的相关指数")
-            
+
             # 提交更改
             db.commit()
+
+        print("股票指数相关度更新完成.")  # 添加完成信息
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    # 测试sz000997股票
-    update_stock_index_correlation("sh600522", [2025])
+    # 更新所有股票的所有年份
+    update_stock_index_correlation()
