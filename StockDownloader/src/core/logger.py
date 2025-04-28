@@ -16,8 +16,9 @@ def get_caller_name():
     return 'unknown'
 
 
-def get_logger():
-    caller_name = get_caller_name()
+def get_logger(logger_name=None):
+    # 如果没有提供logger_name，则使用调用者模块名
+    caller_name = logger_name or get_caller_name()
     # 使用当前日期作为日志文件名
     current_date = datetime.now().strftime("%Y%m%d")
     # 修改日志文件名格式，以日期为主要部分，模块名为次要部分
