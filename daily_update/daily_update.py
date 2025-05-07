@@ -88,14 +88,14 @@ def is_trading_day():
         logger.error(f"检查交易日时发生错误: {str(e)}")
         raise
 
-@retry_with_delay(max_retries=3, initial_delay=66)  # 1分钟初始延迟
+@retry_with_delay(max_retries=3, initial_delay=166)  # 1分钟初始延迟
 def update_stock_data():
     """
     更新股票数据，带重试机制
     """
     download_all_stock_data(update_only=True)
 
-@retry_with_delay(max_retries=3, initial_delay=66)  # 1分钟初始延迟
+@retry_with_delay(max_retries=3, initial_delay=166)  # 1分钟初始延迟
 def update_index_data():
     """
     更新指数数据，带重试机制
@@ -104,10 +104,10 @@ def update_index_data():
 
 def is_update_time_window():
     """
-    检查是否在更新时间窗口内（20:00-22:00）
+    检查是否在更新时间窗口内（20:00-23:00）
     """
     current_hour = datetime.now().hour
-    return 20 <= current_hour <= 22
+    return 20 <= current_hour <= 23
 
 def wait_until_next_check():
     """
@@ -155,16 +155,16 @@ def main():
     
     # 检查是否在更新时间窗口内
     if is_update_time_window():
-        logger.info("当前时间在更新窗口内（20:00-22:00），执行数据更新...")
+        logger.info("当前时间在更新窗口内（20:00-23:00），执行数据更新...")
         # 执行更新任务
         update_data()
         logger.info("数据更新任务执行完成")
     else:
         current_hour = datetime.now().hour
-        logger.info(f"当前时间 {current_hour}:00 不在更新窗口内（20:00-22:00），等待到20:00再执行更新")
+        logger.info(f"当前时间 {current_hour}:00 不在更新窗口内（20:00-23:00），等待到20:00再执行更新")
         # 等待到下一个检查时间（20:00）
         wait_until_next_check()
-        logger.info("当前时间在更新窗口内（20:00-22:00），执行数据更新...")
+        logger.info("当前时间在更新窗口内（20:00-23:00），执行数据更新...")
         update_data()
         logger.info("数据更新任务执行完成")
     
@@ -174,7 +174,7 @@ def main():
         while True:
             # 等待到下一个检查时间
             wait_until_next_check()
-            logger.info("当前时间在更新窗口内（20:00-22:00），执行数据更新...")
+            logger.info("当前时间在更新窗口内（20:00-23:00），执行数据更新...")
             update_data()
             logger.info("数据更新任务执行完成")
 

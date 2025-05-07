@@ -38,9 +38,17 @@ def get_latest_date_from_db(engine, table_model):
 
 
 def update_data(engine, fetcher, saver, table_model, fetch_function, save_function, symbol_list, symbol_key):
-    """基于时间范围更新数据，从上次更新日期到当前日期"""
+    """基于时间范围更新数据，从上次更新日期到最近交易日"""
+    from ..utils.trading_calendar import get_latest_trading_day
+    
+    # 获取最近的交易日作为结束日期
+    latest_trading_day = get_latest_trading_day()
+    end_date = latest_trading_day.strftime("%Y%m%d")
+    
+    # 记录当前日期和最近交易日
     today = date.today()
-    end_date = today.strftime("%Y%m%d")
+    logger.info(f"当前日期: {today.strftime('%Y-%m-%d')}，最近交易日: {latest_trading_day.strftime('%Y-%m-%d')}")
+    
     
     # 创建数据库会话
     SessionLocal = sessionmaker(bind=engine)
@@ -60,10 +68,25 @@ def update_data(engine, fetcher, saver, table_model, fetch_function, save_functi
             start_date = next_day.strftime("%Y%m%d")
             logger.info(f"从上次更新日期 {latest_date} 的下一天开始更新数据")
         
-        # 如果开始日期等于或晚于结束日期，则无需更新
-        if start_date >= end_date:
+        # 检查是否需要更新数据
+        from ..utils.trading_calendar import is_trading_day
+        
+        # 将字符串日期转换为datetime对象进行比较
+        start_date_obj = datetime.strptime(start_date, "%Y%m%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y%m%d").date()
+        
+        # 如果开始日期晚于结束日期，则无需更新
+        if start_date_obj > end_date_obj:
             logger.info(f"数据库已是最新，无需更新")
             return
+            
+        # 如果开始日期等于结束日期，检查今天是否为交易日
+        if start_date_obj == end_date_obj and not is_trading_day():
+            logger.info(f"今天不是交易日或数据库已是最新，无需更新")
+            return
+            
+        # 如果是交易日且数据需要更新，继续执行
+        logger.info(f"今天是交易日，需要更新数据")
         
         logger.info(f"更新数据范围: {start_date} 到 {end_date}")
         
