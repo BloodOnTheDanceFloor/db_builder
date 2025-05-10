@@ -10,6 +10,8 @@ services:
       - ./StockDownloader:/app/StockDownloader
       - ./daily_update:/app/daily_update
     restart: unless-stopped
+    environment:
+      - CONTAINER_ENV=true
     networks:
       - stock_network
 

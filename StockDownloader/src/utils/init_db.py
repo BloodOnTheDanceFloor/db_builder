@@ -1,9 +1,39 @@
-# scripts/init_db.py
+# src/utils/init_db.py
+"""
+此模块负责数据库初始化相关功能。
+
+功能概述：
+- 检查数据库中现有的表
+- 创建缺失的数据库表
+- 智能处理表创建过程，只创建不存在的表
+
+使用方法：
+直接调用init_database()函数即可初始化数据库。该函数会自动检查现有表，
+并只创建缺失的表，避免重复创建已存在的表结构。
+
+依赖：
+- SQLAlchemy ORM
+- 项目中定义的数据模型（models）
+
+示例：
+```python
+from src.utils.init_db import init_database
+
+# 初始化数据库
+init_database()
+```
+
+Authors: hovi.hyw & AI
+Date: 2024-07-03
+"""
+
 from sqlalchemy import inspect
 from ..database.session import engine, Base
 from ..core.logger import logger
 # 确保所有模型类都被导入，这样Base.metadata才能包含所有表
 from ..database.models import DerivedStock, DerivedIndex, StockDailyData, IndexDailyData, StockInfo, IndexInfo, AuctionStock, AuctionIndex
+from ..database.models.info import ETFInfo
+from ..database.models.etf import ETFDailyData
 
 
 def init_database():

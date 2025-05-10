@@ -22,7 +22,9 @@ def check_database_initialized():
     """
     inspector = inspect(engine)
     # 检查必要的表是否存在
-    required_tables = {'daily_index', 'daily_stock', 'derived_stock', 'derived_index'}  # 使用模型中定义的实际表名
+    required_tables = {'daily_index', 'index_info', 
+    'daily_stock', 'stock_info', 
+    'daily_etf', 'etf_info'}  # 使用模型中定义的实际表名
     existing_tables = set(inspector.get_table_names())
     return required_tables.issubset(existing_tables)
 

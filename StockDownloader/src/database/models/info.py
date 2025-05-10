@@ -26,3 +26,13 @@ class IndexInfo(Base):
 
     def __repr__(self):
         return f"<IndexInfo(symbol={self.symbol}, name={self.name})>"
+
+
+class ETFInfo(Base):
+    __tablename__ = "etf_info"
+
+    symbol = Column(String, primary_key=True, nullable=False)  # ETF代码
+    name = Column(String(100), nullable=False)  # ETF名称
+
+    def __repr__(self):
+        return f"<ETFInfo(symbol={self.symbol}, name={self.name})>"
