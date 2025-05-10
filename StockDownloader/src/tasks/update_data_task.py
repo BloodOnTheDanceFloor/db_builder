@@ -80,13 +80,15 @@ def update_data(engine, fetcher, saver, table_model, fetch_function, save_functi
             logger.info(f"数据库已是最新，无需更新")
             return
             
-        # 如果开始日期等于结束日期，检查今天是否为交易日
-        if start_date_obj == end_date_obj and not is_trading_day():
-            logger.info(f"今天不是交易日或数据库已是最新，无需更新")
+        # 检查数据库最新日期是否已经包含最近交易日数据
+        if latest_date and latest_date >= latest_trading_day:
+            logger.info(f"数据库已包含最近交易日 {latest_trading_day.strftime('%Y-%m-%d')} 的数据，无需更新")
             return
             
-        # 如果是交易日且数据需要更新，继续执行
-        logger.info(f"今天是交易日，需要更新数据")
+        # 如果今天不是交易日，但数据库中的数据不是最新的，仍然需要更新
+        trading_day_status = "非交易日" if not is_trading_day() else "交易日"
+        logger.info(f"今天是{trading_day_status}，数据库需要从 {start_date} 更新到 {end_date}")
+
         
         logger.info(f"更新数据范围: {start_date} 到 {end_date}")
         
@@ -103,6 +105,10 @@ def update_data(engine, fetcher, saver, table_model, fetch_function, save_functi
                 # 获取指定时间范围的数据
                 if table_model == IndexDailyData:
                     logger.info(f"获取指数 {symbol} 从 {start_date} 到 {end_date} 的数据")
+                    # 记录更详细的指数数据获取信息
+                    logger.info(f"指数更新 - 开始日期: {start_date}, 结束日期: {end_date}, 指数代码: {symbol}")
+                    if '名称' in row:
+                        logger.info(f"指数名称: {row['名称']}")
                 else:
                     logger.info(f"获取股票 {symbol} 从 {start_date} 到 {end_date} 的数据")
                 
@@ -110,7 +116,14 @@ def update_data(engine, fetcher, saver, table_model, fetch_function, save_functi
                 if table_model == StockDailyData:
                     data = fetch_function(symbol, start_date, end_date, 'hfq')
                 else:
+                    logger.info(f"调用fetch_index_daily_data获取指数 {symbol} 数据...")
                     data = fetch_function(symbol, start_date, end_date)
+                    if data is not None and not data.empty:
+                        logger.info(f"成功获取到指数 {symbol} 数据，行数: {len(data)}")
+                        logger.info(f"数据日期范围: {data['日期'].min()} 到 {data['日期'].max()}")
+                        logger.info(f"数据列: {list(data.columns)}")
+                    else:
+                        logger.warning(f"获取到的指数 {symbol} 数据为空或None")
                 
                 # 检查返回的数据是否为None或空
                 if data is None or data.empty:
@@ -122,7 +135,9 @@ def update_data(engine, fetcher, saver, table_model, fetch_function, save_functi
                 
                 # 保存数据到数据库
                 if table_model == IndexDailyData and '名称' in row:
+                    logger.info(f"开始保存指数 {symbol}({row['名称']}) 数据到数据库...")
                     save_function(data, symbol, row['名称'])
+                    logger.info(f"指数 {symbol}({row['名称']}) 数据保存完成")
                 else:
                     save_function(data, symbol)
                 

@@ -178,13 +178,31 @@ class DataFetcher:
             if symbol.isdigit() and len(symbol) < 6:
                 symbol = symbol.zfill(6)  # 补齐6位
                 
-            return self._fetch_with_retry(
+            logger.info(f"开始调用akshare API获取指数 {symbol} 数据，时间范围: {start_date} - {end_date}")
+            
+            # 记录API调用前的时间
+            import time
+            start_time = time.time()
+            
+            result = self._fetch_with_retry(
                 ak.index_zh_a_hist,  # 修改为东财的历史数据接口
                 symbol=symbol,
                 start_date=start_date,
                 end_date=end_date,
                 period="daily"
             )
+            
+            # 记录API调用后的时间和结果
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            
+            if result is not None and not result.empty:
+                logger.info(f"成功获取指数 {symbol} 数据，行数: {len(result)}，耗时: {elapsed_time:.2f}秒")
+                logger.info(f"获取到的数据日期范围: {min(result['日期']) if not result.empty else '无'} 到 {max(result['日期']) if not result.empty else '无'}")
+            else:
+                logger.warning(f"API返回的指数 {symbol} 数据为空，耗时: {elapsed_time:.2f}秒")
+            
+            return result
         except Exception as e:
             logger.error(f"Failed to fetch index data for {symbol}: {e}")
             # 返回空DataFrame而不是抛出异常，让调用者决定如何处理
