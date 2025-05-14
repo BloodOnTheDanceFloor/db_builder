@@ -266,12 +266,22 @@ def get_next_trading_day(from_date):
         logger.error(f"获取下一个交易日时发生错误: {str(e)}")
         return None
 
-def calculate_next_update_time(is_trading=False):
+def calculate_next_update_time(is_trading=False, should_update=True):
     """
     计算下一次更新时间
+    Args:
+        is_trading (bool): 是否为交易日
+        should_update (bool): 是否需要更新数据
     """
     now = datetime.now()
     today = now.date()
+    
+    # 如果数据已是最新，直接返回下一个交易日的17点
+    if not should_update:
+        next_trading = get_next_trading_day(today)
+        if next_trading:
+            return datetime(next_trading.year, next_trading.month, next_trading.day, 17, 0)
+        return now + timedelta(days=1)
     
     # 如果当前时间在17点之前
     if now.hour < 17:
@@ -349,8 +359,8 @@ def main():
             
             if not should_update:
                 logger.info("数据已是最新，无需更新")
-                # 计算下一次更新时间
-                next_update = calculate_next_update_time(is_trade_day)
+                # 计算下一次更新时间，传入should_update=False
+                next_update = calculate_next_update_time(is_trade_day, should_update=False)
             else:
                 # 判断当前是否在合适的更新时间
                 if is_trade_day:
@@ -358,15 +368,15 @@ def main():
                     if 17 <= now.hour < 22:
                         logger.info("开始更新数据...")
                         run_daily_update()
-                        next_update = calculate_next_update_time(is_trade_day)
+                        next_update = calculate_next_update_time(is_trade_day, should_update=should_update)
                     else:
-                        next_update = calculate_next_update_time(is_trade_day)
+                        next_update = calculate_next_update_time(is_trade_day, should_update=should_update)
                         logger.info(f"当前时间不在更新时间范围内，等待到下一个更新时间")
                 else:
                     # 非交易日：可以立即更新
                     logger.info("非交易日，开始更新数据...")
                     run_daily_update()
-                    next_update = calculate_next_update_time(is_trade_day)
+                    next_update = calculate_next_update_time(is_trade_day, should_update=should_update)
             
             # 计算等待时间
             wait_seconds = (next_update - now).total_seconds()
