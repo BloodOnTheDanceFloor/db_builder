@@ -1,3 +1,5 @@
 # 项目总依赖
 -r StockDownloader/requirements.txt
 -r daily_update/requirements.txt
+ipython~=9.3.0
+pydantic~=2.11.5
