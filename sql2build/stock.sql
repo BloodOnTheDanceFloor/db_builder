@@ -75,3 +75,37 @@ ALTER TABLE public.derived_stock OWNER TO si;
 
 ALTER TABLE ONLY public.derived_stock
     ADD CONSTRAINT derived_stock_pk PRIMARY KEY (symbol, date);
+
+-- stock_hot_rank
+CREATE TABLE public.stock_hot_rank (
+    id integer NOT NULL,
+    symbol character varying NOT NULL,
+    rank integer NOT NULL,
+    new_fans_ratio double precision,
+    loyal_fans_ratio double precision,
+    date timestamp without time zone NOT NULL,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+ALTER TABLE public.stock_hot_rank OWNER TO si;
+
+--
+-- Name: stock_hot_rank stock_hot_rank_pkey; Type: CONSTRAINT; Schema: public; Owner: si
+--
+
+ALTER TABLE ONLY public.stock_hot_rank
+    ADD CONSTRAINT stock_hot_rank_pkey PRIMARY KEY (id);
+
+--
+-- Name: ix_stock_hot_rank_id; Type: INDEX; Schema: public; Owner: si
+--
+
+CREATE INDEX ix_stock_hot_rank_id ON public.stock_hot_rank USING btree (id);
+
+--
+-- Name: ix_stock_hot_rank_stock_code; Type: INDEX; Schema: public; Owner: si
+--
+
+CREATE INDEX ix_stock_hot_rank_stock_code ON public.stock_hot_rank USING btree (symbol);
