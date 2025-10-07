@@ -39,7 +39,10 @@ env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../StockDown
 if os.path.exists(env_path):
     load_dotenv(env_path)
     logger.info(f"已加载环境变量文件: {env_path}")
-    logger.info(f"数据库用户: {os.getenv('DB_USER')}")
+    # 从DATABASE_URL中提取用户名
+    db_url = os.getenv('DATABASE_URL', '')
+    db_user = db_url.split('://')[1].split(':')[0] if '://' in db_url else 'None'
+    logger.info(f"数据库用户: {db_user}")
 else:
     logger.error(f"环境变量文件不存在: {env_path}")
 
@@ -47,6 +50,7 @@ else:
 from StockDownloader.src.tasks.download_stock_task import download_all_stock_data
 from StockDownloader.src.tasks.download_index_task import download_all_index_data
 from StockDownloader.src.tasks.download_etf_task import download_all_etf_data
+from StockDownloader.src.tasks.download_hot_rank_task import download_all_hot_rank_data
 
 def retry_with_delay(max_retries=3, initial_delay=60):
     """
@@ -145,6 +149,13 @@ def update_etf_data():
     """
     download_all_etf_data(update_only=True)
 
+@retry_with_delay(max_retries=3, initial_delay=66)  # 1分钟初始延迟
+def update_hot_rank_data():
+    """
+    更新股票热度排名数据，带重试机制
+    """
+    download_all_hot_rank_data(update_only=True)
+
 def run_daily_update(max_retries=3):
     """
     运行每日更新任务
@@ -159,9 +170,10 @@ def run_daily_update(max_retries=3):
             stock_need_update = need_update_stock()
             index_need_update = need_update_index()
             etf_need_update = need_update_etf()
+            hot_rank_need_update = need_update_hot_rank()
             
             # 如果都不需要更新，直接返回
-            if not any([stock_need_update, index_need_update, etf_need_update]):
+            if not any([stock_need_update, index_need_update, etf_need_update, hot_rank_need_update]):
                 logger.info("所有数据都是最新的，无需更新")
                 return
             
@@ -204,6 +216,11 @@ def run_daily_update(max_retries=3):
                 logger.info("开始更新ETF数据...")
                 update_etf_data()
                 logger.info("ETF数据更新完成")
+            
+            if hot_rank_need_update:
+                logger.info("开始更新股票热度排名数据...")
+                update_hot_rank_data()
+                logger.info("股票热度排名数据更新完成")
             
             # 等待股票数据更新完成（如果有）
             if stock_thread:
@@ -346,6 +363,39 @@ def need_update_etf():
     # 如果数据日期落后于最近的交易日，需要更新
     return latest_data_date < latest_trading_day
 
+def get_latest_hot_rank_date():
+    """
+    获取股票热度排名数据库中最新的数据日期
+    """
+    from StockDownloader.src.database.session import engine
+    from StockDownloader.src.database.models.hot_rank import StockHotRank
+    from StockDownloader.src.tasks.update_data_task import get_latest_date_from_db
+    return get_latest_date_from_db(engine, StockHotRank)
+
+def need_update_hot_rank():
+    """
+    判断是否需要更新股票热度排名数据
+    """
+    latest_data_date = get_latest_hot_rank_date()
+    if not latest_data_date:
+        return True
+    
+    # 获取最近的交易日
+    from StockDownloader.src.utils.trading_calendar import get_latest_trading_day
+    latest_trading_day = get_latest_trading_day()
+    
+    # 确保日期类型一致后再比较
+    # 如果latest_data_date是datetime类型，转换为date类型
+    if isinstance(latest_data_date, datetime):
+        latest_data_date = latest_data_date.date()
+    
+    # 如果latest_trading_day是datetime类型，转换为date类型
+    if isinstance(latest_trading_day, datetime):
+        latest_trading_day = latest_trading_day.date()
+    
+    # 如果数据日期落后于最近的交易日，需要更新
+    return latest_data_date < latest_trading_day
+
 def main():
     """
     主函数
@@ -355,7 +405,7 @@ def main():
             now = datetime.now()
             is_trade_day = is_trading_day()
             # 检查是否需要更新任何一种数据
-            should_update = any([need_update_stock(), need_update_index(), need_update_etf()])
+            should_update = any([need_update_stock(), need_update_index(), need_update_etf(), need_update_hot_rank()])
             
             if not should_update:
                 logger.info("数据已是最新，无需更新")

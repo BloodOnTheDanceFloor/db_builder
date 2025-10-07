@@ -7,6 +7,7 @@ Date: 2024-07-03
 """
 
 import time
+import random
 from datetime import datetime
 
 from ..core.logger import logger
@@ -52,9 +53,17 @@ def download_all_etf_data(update_only=False):
                 etf_service.save_etf_daily_data_to_db(etf_data, symbol)
                 
                 success_count += 1
+                # 添加随机延迟，避免过度访问
+                delay_time = 2 + random.uniform(1, 3)
+                logger.info(f"等待 {delay_time:.2f} 秒后继续下一个ETF下载...")
+                time.sleep(delay_time)
             except Exception as e:
                 logger.error(f"下载ETF {symbol} ({name}) 的数据失败: {e}")
                 fail_count += 1
+                # 失败后增加更长的延迟
+                delay_time = 5 + random.uniform(3, 8)
+                logger.info(f"下载失败，等待 {delay_time:.2f} 秒后继续...")
+                time.sleep(delay_time)
                 continue
         
         end_time = time.time()

@@ -9,6 +9,8 @@ Date: 2024-07-03
 import time
 from datetime import datetime
 import os
+import pandas as pd
+from functools import lru_cache
 
 from ..core.logger import logger
 from ..services.data_fetcher import DataFetcher
@@ -90,6 +92,39 @@ def run_service():
         
         # 每分钟检查一次
         time.sleep(60)
+
+
+@lru_cache(maxsize=1)
+def get_stock_list():
+    """
+    获取股票列表，优先从标准位置读取，如果不存在则通过API获取
+    使用lru_cache缓存结果，避免频繁读取文件
+    
+    Returns:
+        list: 股票代码列表
+    """
+    try:
+        # 从标准位置读取股票列表
+        standard_path = os.path.join(config.CACHE_PATH, "stock_list.csv")
+        if os.path.exists(standard_path):
+            logger.info(f"从缓存文件读取股票列表: {standard_path}")
+            df = pd.read_csv(standard_path)
+            # 返回股票代码列表
+            return df['代码'].tolist()
+        else:
+            # 如果文件不存在，则通过API获取
+            logger.info("缓存文件不存在，通过API获取股票列表")
+            fetcher = DataFetcher()
+            stock_list = fetcher.fetch_stock_list()
+            # 返回股票代码列表
+            if isinstance(stock_list, pd.DataFrame) and '代码' in stock_list.columns:
+                return stock_list['代码'].tolist()
+            else:
+                logger.error("API返回的股票列表格式不正确")
+                return []
+    except Exception as e:
+        logger.error(f"获取股票列表失败: {e}")
+        return []
 
 
 if __name__ == "__main__":
