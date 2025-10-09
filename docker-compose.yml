@@ -16,7 +16,7 @@ services:
     networks:
       - stock_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-stock_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,6 +32,8 @@ services:
     restart: unless-stopped
     environment:
       - CONTAINER_ENV=true
+    env_file:
+      - .env
     depends_on:
       pgdb:
         condition: service_healthy

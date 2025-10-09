@@ -14,8 +14,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 REPO_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, "../"))
 
-# 加载环境变量
-load_dotenv(os.path.join(PROJECT_ROOT, "StockDownloader", ".env"))
+# 加载环境变量 (由 Docker Compose 处理)
 
 
 class Settings:

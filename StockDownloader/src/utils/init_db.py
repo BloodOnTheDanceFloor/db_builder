@@ -31,10 +31,10 @@ from sqlalchemy import inspect
 from ..database.session import engine, Base
 from ..core.logger import logger
 # 确保所有模型类都被导入，这样Base.metadata才能包含所有表
-from ..database.models import DerivedStock, DerivedIndex, StockDailyData, IndexDailyData, StockInfo, IndexInfo, AuctionStock, AuctionIndex
+from ..database.models import StockDailyData, IndexDailyData, StockInfo, IndexInfo
+from ..database.models.etf import ETFDailyData
 from ..database.models.hot_rank import StockHotRank
 from ..database.models.info import ETFInfo
-from ..database.models.etf import ETFDailyData
 
 
 def init_database():

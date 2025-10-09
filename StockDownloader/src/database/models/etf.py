@@ -48,21 +48,3 @@ class ETFDailyData(Base):
 
     def __repr__(self):
         return f"<ETFDailyData(symbol={self.symbol}, date={self.date})>"
-
-
-
-
-
-class DerivedETF(Base):
-    __tablename__ = "derived_etf"
-
-    symbol = Column(String(10), nullable=False)  # ETF代码
-    date = Column(Date, nullable=False)  # 日期
-    real_change = Column(Float)  # 真实涨跌
-
-    __table_args__ = (
-        PrimaryKeyConstraint('symbol', 'date'),
-    )
-
-    def __repr__(self):
-        return f"<DerivedETF(symbol={self.symbol}, date={self.date})>"
