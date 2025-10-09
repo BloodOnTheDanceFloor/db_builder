@@ -10,7 +10,7 @@ import pandas as pd
 import akshare as ak
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
-from dotenv import load_dotenv
+
 from functools import wraps
 import time
 import random
@@ -41,8 +41,7 @@ logger.addHandler(console_handler)
 
 # 加载环境变量
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../StockDownloader/.env'))
-if os.path.exists(env_path):
-    load_dotenv(env_path)
+
 
 # 获取数据库连接信息
 DB_USER = os.getenv("DB_USER", "si")
@@ -136,35 +135,110 @@ def get_stock_hot_rank(stock_code):
         stock_code (str): 股票代码
         
     Returns:
-        pandas.DataFrame: 股票热度排名数据
+        pandas.DataFrame: 股票热度排名数据，包含 '时间', '排名', '新晋粉丝', '铁杆粉丝' 列
     """
     logger.info(f"获取股票 {stock_code} 的热度排名数据...")
     try:
-        result = ak.stock_hot_rank_detail_em(symbol=stock_code)
+        # 创建一个空的结果 DataFrame，包含所需的列
+        result_df = pd.DataFrame(columns=['时间', '排名', '新晋粉丝', '铁杆粉丝'])
         
-        # 检查返回值类型并进行相应处理
-        if result is None:
+        # 修正股票代码前缀，北交所股票(BJ开头)需要改为SZ前缀才能获取数据
+        symbol = stock_code
+        if stock_code.upper().startswith("BJ"):
+            symbol = "SZ" + stock_code[2:]
+            logger.info(f"北交所股票 {stock_code} 已转换为 {symbol} 以获取数据")
+        
+        # 调用 akshare 函数获取数据
+        try:
+            raw_data = ak.stock_hot_rank_detail_em(symbol=symbol)
+        except Exception as e:
+            logger.warning(f"调用 akshare.stock_hot_rank_detail_em 失败: {str(e)}")
+            return result_df
+        
+        # 检查返回的数据是否为空
+        if raw_data is None:
             logger.warning(f"股票 {stock_code} 的热度排名数据为空")
-            return pd.DataFrame()
-        elif isinstance(result, list):
-            if len(result) == 0:
-                logger.warning(f"股票 {stock_code} 的热度排名数据为空列表")
-                return pd.DataFrame()
-            else:
-                # 如果是列表，尝试转换为DataFrame
-                logger.info(f"将股票 {stock_code} 的列表数据转换为DataFrame")
-                df = pd.DataFrame(result)
-        elif isinstance(result, pd.DataFrame):
-            df = result
-        else:
-            logger.warning(f"股票 {stock_code} 返回了未知的数据类型: {type(result)}")
-            return pd.DataFrame()
+            return result_df
         
-        logger.info(f"成功获取股票 {stock_code} 的热度排名数据，共 {len(df)} 条记录")
-        return df
+        # 处理不同的返回类型情况
+        if isinstance(raw_data, pd.DataFrame):
+            # 如果返回的是 DataFrame
+            if raw_data.empty:
+                logger.warning(f"股票 {stock_code} 的热度排名数据为空 DataFrame")
+                return result_df
+            
+            # 检查并处理列名
+            if '时间' in raw_data.columns and '排名' in raw_data.columns:
+                # 如果包含必要的列，提取需要的列
+                for col in ['时间', '排名', '新晋粉丝', '铁杆粉丝']:
+                    if col not in raw_data.columns:
+                        # 如果缺少某列，添加默认值
+                        raw_data[col] = 0 if col != '时间' else datetime.now().strftime('%Y-%m-%d')
+                
+                # 只保留需要的列
+                result_df = raw_data[['时间', '排名', '新晋粉丝', '铁杆粉丝']].copy()
+                logger.info(f"成功获取股票 {stock_code} 的热度排名数据，共 {len(result_df)} 条记录")
+                return result_df
+            else:
+                # 如果列名不匹配，尝试根据位置提取
+                logger.warning(f"股票 {stock_code} 的热度排名数据列名不匹配: {raw_data.columns.tolist()}")
+                try:
+                    # 假设第一列是时间，第二列是排名，依此类推
+                    if len(raw_data.columns) >= 4:
+                        new_df = pd.DataFrame({
+                            '时间': raw_data.iloc[:, 0],
+                            '排名': raw_data.iloc[:, 1],
+                            '新晋粉丝': raw_data.iloc[:, 2],
+                            '铁杆粉丝': raw_data.iloc[:, 3]
+                        })
+                        logger.info(f"通过位置映射成功提取股票 {stock_code} 的热度排名数据")
+                        return new_df
+                except Exception as e:
+                    logger.error(f"尝试通过位置提取股票 {stock_code} 的热度排名数据失败: {str(e)}")
+                    return result_df
+        elif isinstance(raw_data, tuple) or isinstance(raw_data, list):
+            # 如果返回的是元组或列表
+            logger.warning(f"股票 {stock_code} 返回了 {type(raw_data)} 类型的数据，尝试转换")
+            try:
+                # 尝试将元组或列表转换为 DataFrame
+                if len(raw_data) >= 1 and isinstance(raw_data[0], pd.DataFrame):
+                    # 如果第一个元素是 DataFrame
+                    df = raw_data[0]
+                    if not df.empty and len(df.columns) >= 4:
+                        new_df = pd.DataFrame({
+                            '时间': df.iloc[:, 0],
+                            '排名': df.iloc[:, 1],
+                            '新晋粉丝': df.iloc[:, 2],
+                            '铁杆粉丝': df.iloc[:, 3]
+                        })
+                        logger.info(f"成功从元组/列表中提取股票 {stock_code} 的热度排名数据")
+                        return new_df
+                elif len(raw_data) >= 4:
+                    # 如果元组/列表本身包含足够的元素
+                    today = datetime.now().strftime('%Y-%m-%d')
+                    new_df = pd.DataFrame({
+                        '时间': [today],
+                        '排名': [raw_data[0] if isinstance(raw_data[0], (int, float)) else 0],
+                        '新晋粉丝': [raw_data[1] if isinstance(raw_data[1], (int, float)) else 0],
+                        '铁杆粉丝': [raw_data[2] if isinstance(raw_data[2], (int, float)) else 0]
+                    })
+                    logger.info(f"成功从元组/列表元素创建股票 {stock_code} 的热度排名数据")
+                    return new_df
+            except Exception as e:
+                logger.error(f"尝试转换股票 {stock_code} 的元组/列表数据失败: {str(e)}")
+                return result_df
+        else:
+            # 其他类型的数据
+            logger.warning(f"股票 {stock_code} 返回了不支持的数据类型: {type(raw_data)}")
+            return result_df
+        
+        # 如果所有尝试都失败，返回空 DataFrame
+        logger.warning(f"无法处理股票 {stock_code} 的热度排名数据，返回空结果")
+        return result_df
     except Exception as e:
         logger.error(f"获取股票 {stock_code} 的热度排名数据失败: {str(e)}")
-        raise
+        # 返回空 DataFrame 而不是抛出异常，让程序继续运行
+        return pd.DataFrame(columns=['时间', '排名', '新晋粉丝', '铁杆粉丝'])
 
 def save_hot_rank_to_db(engine, stock_code, hot_rank_df):
     """
@@ -247,13 +321,13 @@ def save_hot_rank_to_db(engine, stock_code, hot_rank_df):
         logger.error(f"保存股票 {stock_code} 的热度排名数据到数据库失败: {str(e)}")
         raise
 
-def update_hot_rank_data(stock_codes=None, max_stocks=50):
+def update_hot_rank_data(stock_codes=None, max_stocks=None):
     """
     更新股票热度排名数据
     
     Args:
         stock_codes (list): 要更新的股票代码列表，如果为None则更新所有股票
-        max_stocks (int): 最大更新股票数量，默认为50
+        max_stocks (int): 最大更新股票数量，默认为None表示更新所有股票
     """
     logger.info("开始更新股票热度排名数据...")
     
@@ -264,12 +338,13 @@ def update_hot_rank_data(stock_codes=None, max_stocks=50):
         # 如果未指定股票代码，获取股票列表
         if not stock_codes:
             stock_list = get_stock_list()
-            # 只取前max_stocks个股票
-            stock_list = stock_list.head(max_stocks)
+            # 如果指定了最大数量，则只取前max_stocks个股票
+            if max_stocks:
+                stock_list = stock_list.head(max_stocks)
             stock_codes = stock_list['代码'].tolist()
         
-        # 限制股票数量
-        if len(stock_codes) > max_stocks:
+        # 如果指定了最大数量，则限制股票数量
+        if max_stocks and len(stock_codes) > max_stocks:
             logger.info(f"股票数量超过限制，只更新前 {max_stocks} 个股票")
             stock_codes = stock_codes[:max_stocks]
         
@@ -303,7 +378,7 @@ if __name__ == "__main__":
         # update_hot_rank_data(stock_codes)
         
         # 或者更新前50个股票
-        update_hot_rank_data(max_stocks=50)
+        update_hot_rank_data()
     except Exception as e:
         logger.error(f"程序执行失败: {str(e)}")
         sys.exit(1)

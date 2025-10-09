@@ -48,6 +48,8 @@ RUN echo '#!/bin/sh\n\
 chmod -R 777 /app/logs\n\
 # 执行数据库初始化脚本\n\
 python daily_update/init_db_script.py\n\
+# 执行热度排名数据更新脚本\n\
+python daily_update/hot_rank_update.py\n\
 # 执行数据更新服务\n\
 exec python daily_update/daily_update.py' > /app/start.sh && \
     chmod +x /app/start.sh
