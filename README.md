@@ -44,7 +44,7 @@
 
 ### 环境要求
 
-- Python 3.7+
+- Python 3.14.0+
 - PostgreSQL 数据库
 - Docker（可选）
 
@@ -65,6 +65,7 @@ docker-compose build
 ```bash
 docker-compose up -d
 ```
+数据库表将在服务启动时自动初始化。
 
 ### 传统部署
 
@@ -78,6 +79,7 @@ cp StockDownloader/.env.example StockDownloader/.env
 ```bash
 python server.py
 ```
+数据库表将在服务启动时自动初始化。
 
 ## 使用指南
 

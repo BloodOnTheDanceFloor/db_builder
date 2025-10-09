@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  pgdb:
+    image: postgres:14
+    container_name: pgdb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-stock_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - stock_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   daily_update:
     build:
       context: .
@@ -12,8 +32,14 @@ services:
     restart: unless-stopped
     environment:
       - CONTAINER_ENV=true
+    depends_on:
+      pgdb:
+        condition: service_healthy
     networks:
       - stock_network
+
+volumes:
+  pgdata:
 
 networks:
   stock_network:

@@ -24,8 +24,9 @@ def check_database_initialized():
     # 检查必要的表是否存在
     required_tables = {'daily_index', 'index_info', 
     'daily_stock', 'stock_info', 
-    'daily_etf', 'etf_info'}  # 使用模型中定义的实际表名
+    'daily_etf', 'etf_info', 'stock_hot_rank'}  # 使用模型中定义的实际表名
     existing_tables = set(inspector.get_table_names())
+    logger.info(f"检查数据库表: 需要的表: {required_tables}, 存在的表: {existing_tables}")
     return required_tables.issubset(existing_tables)
 
 

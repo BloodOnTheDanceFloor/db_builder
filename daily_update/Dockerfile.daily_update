@@ -1,5 +1,5 @@
 # 构建阶段
-FROM python:3.11-slim AS builder
+FROM python:3.14.0 AS builder
 
 WORKDIR /build
 
@@ -7,18 +7,22 @@ WORKDIR /build
 COPY StockDownloader/requirements.txt StockDownloader/requirements.txt
 COPY daily_update/requirements.txt daily_update/requirements.txt
 
+# 安装构建依赖
+RUN apt-get update && apt-get install -y build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # 合并依赖并安装
 RUN cat StockDownloader/requirements.txt > requirements.txt && \
     pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt --target=/python_deps
 
 # 运行阶段
-FROM python:3.11-slim
+FROM python:3.14.0
 
 WORKDIR /app
 
 # 复制依赖
-COPY --from=builder /python_deps /usr/local/lib/python3.11/site-packages/
+COPY --from=builder /python_deps /usr/local/lib/python3.14/site-packages/
 
 # 创建必要的目录
 RUN mkdir -p /app/StockDownloader/cache /app/logs
@@ -42,6 +46,8 @@ ENV CONTAINER_ENV=true
 RUN echo '#!/bin/sh\n\
 # 确保日志目录权限正确\n\
 chmod -R 777 /app/logs\n\
+# 执行数据库初始化脚本\n\
+python daily_update/init_db_script.py\n\
 # 执行数据更新服务\n\
 exec python daily_update/daily_update.py' > /app/start.sh && \
     chmod +x /app/start.sh

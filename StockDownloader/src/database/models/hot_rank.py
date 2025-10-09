@@ -2,9 +2,8 @@
 股票热度排名数据模型
 """
 from sqlalchemy import Column, Integer, String, Float, Date, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from ..base import Base
 
 class StockHotRank(Base):
     """

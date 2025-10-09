@@ -1,22 +1,26 @@
 # 构建阶段
-FROM python:3.11-slim AS builder
+FROM python:3.14.0 AS builder
 
 WORKDIR /build
 
 # 复制依赖文件
 COPY StockDownloader/requirements.txt .
 
+# 安装构建依赖
+RUN apt-get update && apt-get install -y build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # 安装依赖到指定目录
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt --target=/python_deps
 
 # 运行阶段
-FROM python:3.11-slim
+FROM python:3.14.0
 
 WORKDIR /app
 
 # 复制依赖
-COPY --from=builder /python_deps /usr/local/lib/python3.11/site-packages/
+COPY --from=builder /python_deps /usr/local/lib/python3.14/site-packages/
 
 # 复制项目文件
 COPY StockDownloader /app/StockDownloader
